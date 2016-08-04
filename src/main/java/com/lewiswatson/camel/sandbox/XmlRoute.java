@@ -12,6 +12,7 @@ import org.apache.camel.builder.RouteBuilder;
  *   <li>Splitter
  *   <li>Recipient List
  *   <li>Aggregator
+ *   <li>Filter
  *  </ul>
  * <li> Reading/Writing files
  * <li>Logging
@@ -26,6 +27,8 @@ public class XmlRoute extends RouteBuilder {
 
 	@Override
 	public void configure() throws Exception {
+		
+		// Demonstrate Content Based Router (CBR) pattern
 		from("file:in")
 			.to(LOG_URI)
 			.choice()
@@ -37,22 +40,27 @@ public class XmlRoute extends RouteBuilder {
 					.to("direct:non-xml")
 			.endChoice();
 		
+		// Demonstrate the splitter pattern and multicast.
 		from("direct:xml")
 			.split(xpath("//order"))
 			.log("order item")
 			.process(new XmlProcessor())
 			.to(LOG_URI)
 			.multicast()
-			.to("file:xml", "direct:aggregator");
+			.to("file:xml", "direct:aggregator", "direct:onlyBelts");
 		
 		from("direct:non-xml").to("file:nonxml");
 		
+		// Demonstrate the aggregator pattern
 		from("direct:aggregator")
 			.aggregate(header("item"), new OrderAggregationStrategy()).completionTimeout(3000)
 			.log("aggregated message")
 			.setHeader(Exchange.OVERRULE_FILE_NAME, header("item"))
 			.to(LOG_URI)
 			.to("file:aggregatedXML");
+		
+		// Demonstrate the filter pattern
+		from("direct:onlyBelts").filter(xpath("//order/item[belt]")).to("file:belts");
 	}
 
 }

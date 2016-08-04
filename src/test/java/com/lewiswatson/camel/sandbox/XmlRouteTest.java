@@ -25,7 +25,7 @@ import org.dom4j.Element;
 
 @RunWith(CamelSpringJUnit4ClassRunner.class)
 @BootstrapWith(CamelTestContextBootstrapper.class)
-@MockEndpointsAndSkip("file:xml|file:aggregatedXML|file:nonxml")
+@MockEndpointsAndSkip("file:xml|file:aggregatedXML|file:nonxml|file:belts")
 @ContextConfiguration("classpath:/META-INF/spring/camel-context.xml")
 @DirtiesContext
 public class XmlRouteTest {
@@ -42,6 +42,9 @@ public class XmlRouteTest {
 	@EndpointInject(uri = "mock:file:aggregatedXML")
 	protected MockEndpoint aggregatedXML;
 
+	@EndpointInject(uri = "mock:file:belts")
+	protected MockEndpoint belts;
+	
 	@EndpointInject(uri = "file:in")
 	protected ProducerTemplate template;
 
@@ -119,6 +122,26 @@ public class XmlRouteTest {
 		// ArrayList<String>(Arrays.asList("socks", "hat")));
 		MockEndpoint.assertIsSatisfied(camelContext);
 	}
+	
+	@Test
+	public void testFilter() {
+		Document document = DocumentHelper.createDocument();
+		Element root = document.addElement("orders");
+		Element order = root.addElement("order");
+		order.addElement("id").addText("4429");
+		order.addElement("item").addText("trousers");
+		Element order2 = root.addElement("order");
+		order2.addElement("id").addText("4430");
+		order2.addElement("item").addText("belt");
+		Element order3 = root.addElement("order");
+		order3.addElement("id").addText("4431");
+		order3.addElement("item").addText("belt");
+		
+		template.sendBodyAndHeader("file:in", document.asXML(), Exchange.FILE_NAME, "order4.xml");
+
+		belts.expectedMessageCount(2);
+		belts.expectedHeaderValuesReceivedInAnyOrder("item", new ArrayList<String>(Arrays.asList("belt", "belt")));
+	}
 
 	/**
 	 * Reset mock endpoints to avoid tests affecting each other
@@ -128,6 +151,7 @@ public class XmlRouteTest {
 		fileXML.reset();
 		aggregatedXML.reset();
 		nonXML.reset();
+		belts.reset();
 	}
 
 }

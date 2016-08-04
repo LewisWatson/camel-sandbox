@@ -15,8 +15,12 @@ public class XmlProcessor implements Processor {
 		Object inBody = inMessage.getBody();
 		CamelContext context = exchange.getContext();
 
-		inMessage.setHeader("orderId", xpath("//order/id").evaluate(context, inBody));
-		inMessage.setHeader("item", xpath("//order/item").evaluate(context, inBody));
+		String orderId = xpath("//order/id").evaluate(context, inBody);
+		String item = xpath("//order/item").evaluate(context, inBody);
+		
+		inMessage.setHeader("orderId", orderId);
+		inMessage.setHeader("item", item);
+		inMessage.setHeader(Exchange.OVERRULE_FILE_NAME, "order-"+orderId+"-"+item+".xml");
 	}
 
 }

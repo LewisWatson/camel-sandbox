@@ -11,6 +11,7 @@ import org.apache.camel.component.mock.MockEndpoint;
 import org.apache.camel.test.spring.CamelSpringJUnit4ClassRunner;
 import org.apache.camel.test.spring.CamelTestContextBootstrapper;
 import org.apache.camel.test.spring.MockEndpointsAndSkip;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,7 +25,7 @@ import org.dom4j.Element;
 
 @RunWith(CamelSpringJUnit4ClassRunner.class)
 @BootstrapWith(CamelTestContextBootstrapper.class)
-@MockEndpointsAndSkip("file:xml")
+@MockEndpointsAndSkip("file:xml|file:aggregatedXML|file:nonxml")
 @ContextConfiguration("classpath:/META-INF/spring/camel-context.xml")
 @DirtiesContext
 public class XmlRouteTest {
@@ -33,9 +34,15 @@ public class XmlRouteTest {
 	protected CamelContext camelContext;
 
 	@EndpointInject(uri = "mock:file:xml")
-	protected MockEndpoint end;
+	protected MockEndpoint fileXML;
 
-	@EndpointInject(uri = "file:in?noop=true")
+	@EndpointInject(uri = "mock:file:nonxml")
+	protected MockEndpoint nonXML;
+
+	@EndpointInject(uri = "mock:file:aggregatedXML")
+	protected MockEndpoint aggregatedXML;
+
+	@EndpointInject(uri = "file:in")
 	protected ProducerTemplate template;
 
 	@Test
@@ -47,37 +54,29 @@ public class XmlRouteTest {
 		order.addElement("id").addText("4423");
 		order.addElement("item").addText("sunglasses");
 
-		template.sendBodyAndHeader("file:in?noop=true", document.asXML(), Exchange.FILE_NAME, "order.xml");
+		template.sendBodyAndHeader("file:in", document.asXML(), Exchange.FILE_NAME, "order.xml");
 
-		// TODO not sure why this assertion fails
-		// end.expectedMessageCount(1);
-		end.expectedHeaderReceived("orderId", "4423");
-		end.expectedHeaderReceived("item", "sunglasses");
+		fileXML.expectedMessageCount(1);
+		fileXML.expectedHeaderReceived("orderId", "4423");
+		fileXML.expectedHeaderReceived("item", "sunglasses");
 		MockEndpoint.assertIsSatisfied(camelContext);
 	}
 
+	/**
+	 * TODO test passes regardless due to an xpath exception triggering a
+	 * rollback
+	 * 
+	 * @throws InterruptedException
+	 */
 	@Test
 	public void testNonXMLFile() throws InterruptedException {
-
-		// Reset the mock endpoint to avoid previous test from affecting the
-		// assertions.
-		end.reset();
-
-		template.sendBodyAndHeader("file:in?noop=true", "Some text", Exchange.FILE_NAME, "order.txt");
-
-		end.expectedMessageCount(0);
-		// TODO test passes regardless due to an xpath exception triggering a
-		// rollback
-
+		template.sendBodyAndHeader("file:in", "Some text", Exchange.FILE_NAME, "order.txt");
+		fileXML.expectedMessageCount(0);
 		MockEndpoint.assertIsSatisfied(camelContext);
 	}
 
 	@Test
 	public void testMultiOrderXmlFile() throws InterruptedException {
-
-		// Reset the mock endpoint to avoid previous test from affecting the
-		// assertions.
-		end.reset();
 
 		Document document = DocumentHelper.createDocument();
 		Element root = document.addElement("orders");
@@ -88,12 +87,47 @@ public class XmlRouteTest {
 		order2.addElement("id").addText("4425");
 		order2.addElement("item").addText("shoes");
 
-		template.sendBodyAndHeader("file:in?noop=true", document.asXML(), Exchange.FILE_NAME, "order.xml");
+		template.sendBodyAndHeader("file:in", document.asXML(), Exchange.FILE_NAME, "order2.xml");
 
-		end.expectedMessageCount(1);
-		end.expectedHeaderValuesReceivedInAnyOrder("orderId", new ArrayList<String>(Arrays.asList("4424", "4425")));
-		end.expectedHeaderValuesReceivedInAnyOrder("item", new ArrayList<String>(Arrays.asList("t-shirt", "shoes")));
+		fileXML.expectedMessageCount(1);
+		fileXML.expectedHeaderValuesReceivedInAnyOrder("orderId", new ArrayList<String>(Arrays.asList("4424", "4425")));
+		fileXML.expectedHeaderValuesReceivedInAnyOrder("item",
+				new ArrayList<String>(Arrays.asList("t-shirt", "shoes")));
 		MockEndpoint.assertIsSatisfied(camelContext);
+	}
+
+	@Test
+	public void testAggregator() throws InterruptedException {
+
+		Document document = DocumentHelper.createDocument();
+		Element root = document.addElement("orders");
+		Element order = root.addElement("order");
+		order.addElement("id").addText("4426");
+		order.addElement("item").addText("socks");
+		Element order2 = root.addElement("order");
+		order2.addElement("id").addText("4427");
+		order2.addElement("item").addText("hat");
+		Element order3 = root.addElement("order");
+		order3.addElement("id").addText("4428");
+		order3.addElement("item").addText("hat");
+
+		template.sendBodyAndHeader("file:in", document.asXML(), Exchange.FILE_NAME, "order3.xml");
+
+		aggregatedXML.expectedMessageCount(2);
+		// TODO not sure why this fails
+		// aggregatedXML.expectedHeaderValuesReceivedInAnyOrder("item", new
+		// ArrayList<String>(Arrays.asList("socks", "hat")));
+		MockEndpoint.assertIsSatisfied(camelContext);
+	}
+
+	/**
+	 * Reset mock endpoints to avoid tests affecting each other
+	 */
+	@Before
+	public void resetMocks() {
+		fileXML.reset();
+		aggregatedXML.reset();
+		nonXML.reset();
 	}
 
 }

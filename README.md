@@ -1,5 +1,5 @@
 # camel-sandbox
-Preparing for RedHat Apache Camel Exam
+Preparing for [Red Hat Certificate of Expertise in Camel Development Exam](https://www.redhat.com/en/services/training/ex421-red-hat-certificate-expertise-camel-development-exam)
 
 To build this project use
 

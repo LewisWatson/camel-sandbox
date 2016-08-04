@@ -13,6 +13,7 @@ import org.apache.camel.builder.RouteBuilder;
  *   <li>Recipient List
  *   <li>Aggregator
  *   <li>Filter
+ *   <li>Wiretap
  *  </ul>
  * <li> Reading/Writing files
  * <li>Logging

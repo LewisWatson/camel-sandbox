@@ -28,9 +28,10 @@ public class XmlRoute extends RouteBuilder {
 	@Override
 	public void configure() throws Exception {
 		
-		// Demonstrate Content Based Router (CBR) pattern
+		// Demonstrate Content Based Router (CBR) and wiretap EIP pattern
 		from("file:in")
 			.to(LOG_URI)
+			.wireTap("file:wiretap")
 			.choice()
 				.when(header(Exchange.FILE_NAME_ONLY).endsWith(".xml"))
 					.log("found xml file")

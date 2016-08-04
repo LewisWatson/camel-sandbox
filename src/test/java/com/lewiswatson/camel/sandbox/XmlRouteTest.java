@@ -25,7 +25,7 @@ import org.dom4j.Element;
 
 @RunWith(CamelSpringJUnit4ClassRunner.class)
 @BootstrapWith(CamelTestContextBootstrapper.class)
-@MockEndpointsAndSkip("file:xml|file:aggregatedXML|file:nonxml|file:belts")
+@MockEndpointsAndSkip("file:xml|file:aggregatedXML|file:nonxml|file:belts|file:wiretap")
 @ContextConfiguration("classpath:/META-INF/spring/camel-context.xml")
 @DirtiesContext
 public class XmlRouteTest {
@@ -45,6 +45,9 @@ public class XmlRouteTest {
 	@EndpointInject(uri = "mock:file:belts")
 	protected MockEndpoint belts;
 	
+	@EndpointInject(uri = "mock:file:wiretap")
+	protected MockEndpoint wiretap;
+	
 	@EndpointInject(uri = "file:in")
 	protected ProducerTemplate template;
 
@@ -62,6 +65,10 @@ public class XmlRouteTest {
 		fileXML.expectedMessageCount(1);
 		fileXML.expectedHeaderReceived("orderId", "4423");
 		fileXML.expectedHeaderReceived("item", "sunglasses");
+
+		wiretap.expectedMessageCount(1);
+		wiretap.expectedBodiesReceived(document.asXML());
+		
 		MockEndpoint.assertIsSatisfied(camelContext);
 	}
 

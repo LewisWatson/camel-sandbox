@@ -12,6 +12,7 @@ import org.apache.camel.test.spring.CamelSpringJUnit4ClassRunner;
 import org.apache.camel.test.spring.CamelTestContextBootstrapper;
 import org.apache.camel.test.spring.MockEndpointsAndSkip;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -52,6 +53,7 @@ public class XmlRouteTest {
 	protected ProducerTemplate template;
 
 	@Test
+	@Ignore()
 	public void testXmlFile() throws InterruptedException {
 
 		Document document = DocumentHelper.createDocument();
